@@ -1,5 +1,5 @@
-import logo from './logo.svg'
-import logo_dark from './logo_dark.svg'
+import logo from './logo.png'
+import logo_dark from './logo_dark.png'
 import search_icon from './search_icon.svg'
 import cross_icon from './cross_icon.svg'
 import upload_area from './upload_area.svg'
@@ -107,22 +107,23 @@ export const dummyTestimonial = [
         role: 'SWE 1 @ Amazon',
         image: assets.profile_img_1,
         rating: 5,
-        feedback: 'I\'ve been using Imagify for nearly two years, primarily for Instagram, and it has been incredibly user-friendly, making my work much easier.',
+        feedback: 'The project-based learning approach here is unmatched. I transitioned from a complete beginner to landing my first role at Amazon thanks to the Full Stack Web Development track.',
     },
     {
         name: 'Richard Nelson',
-        role: 'SWE 2 @ Samsung',
+        role: 'UI/UX Designer @ Samsung',
         image: assets.profile_img_2,
         rating: 4,
-        feedback: 'I\'ve been using Imagify for nearly two years, primarily for Instagram, and it has been incredibly user-friendly, making my work much easier.',
+        feedback: 'I’ve taken several design courses, but the mentorship and real-world case studies provided in the UI/UX Advanced course actually prepared me for my interviews at Samsung.',
     },
     {
         name: 'James Washington',
-        role: 'SWE 2 @ Google',
+        role: 'Data Scientist @ Google',
         image: assets.profile_img_3,
-        rating: 4.5,
-        feedback: 'I\'ve been using Imagify for nearly two years, primarily for Instagram, and it has been incredibly user-friendly, making my work much easier.',
+        rating: 5,
+        feedback: 'The Machine Learning curriculum is incredibly deep yet easy to follow. The way complex concepts are simplified is what sets this platform apart from other e-learning sites.',
     },
+   
 ];
 
 export const dummyDashboardData = {
