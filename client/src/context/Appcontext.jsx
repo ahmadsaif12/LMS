@@ -10,8 +10,8 @@ export const AppContextProvider = (props) => {
     const [allCourses, setAllCourses] = useState([]);
     const navigate = useNavigate();
     const [isEducator, setIsEducator] = useState(true);
+    const [enrolledCourse, setEnrolledCourse] = useState([]);
 
-    // Function to calculate average rating of a course
     const calculateRating = (course) => {
         if (!course.courseRatings || course.courseRatings.length === 0) {
             return 0;
@@ -20,10 +20,8 @@ export const AppContextProvider = (props) => {
         return totalRating / course.courseRatings.length;
     }
 
-    // Function to calculate total time of a chapter (in minutes)
     const calculateChapterTime = (chapter) => {
         let time = 0;
-        // Check if chapterContent exists and sum up the durations
         chapter.chapterContent.forEach((lecture) => {
             time += lecture.lectureDuration || 0;
         });
@@ -37,7 +35,7 @@ export const AppContextProvider = (props) => {
             time += calculateChapterTime(chapter);
         });
         
-        // Return a formatted string or raw number (Assuming minutes here)
+        // Logic to return total minutes
         return time; 
     }
 
@@ -56,8 +54,13 @@ export const AppContextProvider = (props) => {
         setAllCourses(dummyCourses);
     }
 
+    const fetchUserEnrolledCourses = async () => {
+        setEnrolledCourse(dummyCourses);
+    }
+
     useEffect(() => {
         fetchAllCourses();
+        fetchUserEnrolledCourses();
     }, []);
 
     const value = {
@@ -70,8 +73,10 @@ export const AppContextProvider = (props) => {
         setIsEducator,
         calculateChapterTime,
         calculateCourseDuration,
-        calculateNoOfLectures
-    };
+        calculateNoOfLectures,
+        enrolledCourse,       
+        setEnrolledCourse 
+    }
 
     return (
         <AppContext.Provider value={value}>
