@@ -23,7 +23,7 @@ const CourseCard = ({ course }) => {
           {course.courseTitle}
         </h3>
         
-        <p className='text-xs text-gray-500 mt-1'>{course.educator.name}</p>
+        <p className='text-xs text-gray-500 mt-1'>Saif Ahmad</p>
 
         <div className='flex items-center gap-1.5 mt-2'>
           {/* Display average rating from context function */}
