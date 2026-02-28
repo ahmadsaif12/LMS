@@ -1,5 +1,7 @@
 import { Webhook } from "svix";
 import User from '../models/User.js';
+import stripe from '../configs/stripe.js';
+import Course from '../models/Course.js';
 
 // Controller to handle Clerk Webhooks
 export const clerkWebhooks = async (req, res) => {
@@ -61,3 +63,40 @@ export const clerkWebhooks = async (req, res) => {
         res.status(400).json({ success: false, message: error.message });
     }
 }
+
+
+export const stripeWebhooks = async (req, res) => {
+    const sig = req.headers['stripe-signature'];
+    let event;
+
+    try {
+        event = stripe.webhooks.constructEvent(
+            req.body, 
+            sig, 
+            process.env.CLERK_WEBHOOK_SECRET 
+        );
+    } catch (err) {
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    // Handle the successful payment event
+    if (event.type === 'checkout.session.completed') {
+        const session = event.data.object;
+        const { courseId, userId } = session.metadata;
+
+        try {
+            await User.findByIdAndUpdate(userId, {
+                $addToSet: { enrolledCourses: courseId }
+            });
+            await Course.findByIdAndUpdate(courseId, {
+                $addToSet: { enrolledStudents: userId }
+            });
+
+            console.log(` Enrollment Successful: User ${userId} -> Course ${courseId}`);
+        } catch (error) {
+            console.error('Database Update Error:', error.message);
+            return res.status(500).json({ message: "Database update failed" });
+        }
+    }
+    res.json({ received: true });
+};
