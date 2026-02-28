@@ -2,6 +2,7 @@ import { Webhook } from "svix";
 import User from '../models/User.js';
 import stripe from '../configs/stripe.js';
 import Course from '../models/Course.js';
+import Purchase from '../models/Purchase.js'; 
 
 // Controller to handle Clerk Webhooks
 export const clerkWebhooks = async (req, res) => {
@@ -62,8 +63,7 @@ export const clerkWebhooks = async (req, res) => {
         console.log("Webhook Error:", error.message);
         res.status(400).json({ success: false, message: error.message });
     }
-}
-
+};
 
 export const stripeWebhooks = async (req, res) => {
     const sig = req.headers['stripe-signature'];
@@ -73,18 +73,23 @@ export const stripeWebhooks = async (req, res) => {
         event = stripe.webhooks.constructEvent(
             req.body, 
             sig, 
-            process.env.CLERK_WEBHOOK_SECRET 
+            process.env.STRIPE_WEBHOOK_SECRET 
         );
     } catch (err) {
+        console.error(`Webhook Error: ${err.message}`);
         return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
     // Handle the successful payment event
     if (event.type === 'checkout.session.completed') {
         const session = event.data.object;
-        const { courseId, userId } = session.metadata;
+        const { purchaseId, courseId, userId } = session.metadata;
 
         try {
+            // 1. Update the Purchase record status to 'completed'
+            if (purchaseId) {
+                await Purchase.findByIdAndUpdate(purchaseId, { status: 'completed' });
+            }
             await User.findByIdAndUpdate(userId, {
                 $addToSet: { enrolledCourses: courseId }
             });
@@ -92,7 +97,7 @@ export const stripeWebhooks = async (req, res) => {
                 $addToSet: { enrolledStudents: userId }
             });
 
-            console.log(` Enrollment Successful: User ${userId} -> Course ${courseId}`);
+            console.log(` Success: User ${userId} enrolled in Course ${courseId}`);
         } catch (error) {
             console.error('Database Update Error:', error.message);
             return res.status(500).json({ message: "Database update failed" });

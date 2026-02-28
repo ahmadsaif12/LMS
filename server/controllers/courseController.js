@@ -1,7 +1,7 @@
 import Course from '../models/Course.js';
+import Purchase from '../models/Purchase.js'
 import stripe from '../configs/stripe.js';
 
-// 1. Fetch all published courses (Simplified for browsing)
 export const getAllCoursesData = async (req, res) => {
     try {
         const courses = await Course.find({ isPublished: true })
@@ -14,7 +14,7 @@ export const getAllCoursesData = async (req, res) => {
     }
 };
 
-// 2. Fetch specific course details (Including curriculum structure)
+// 2. Fetch specific course details
 export const getCourseById = async (req, res) => {
     try {
         const { id } = req.params;
@@ -36,7 +36,6 @@ export const getCourseById = async (req, res) => {
     }
 };
 
-// 3. Handle Stripe Payment Gateway
 export const PurchaseCourse = async (req, res) => {
     try {
         const { courseId } = req.body;
@@ -46,19 +45,21 @@ export const PurchaseCourse = async (req, res) => {
         const course = await Course.findById(courseId);
         if (!course) return res.status(404).json({ success: false, message: 'Course not found' });
 
-        // Calculate discounted price in cents
         const finalPrice = course.coursePrice - (course.coursePrice * course.discount) / 100;
         const amountInCents = Math.round(finalPrice * 100);
+        const newPurchase = await Purchase.create({
+            courseId,
+            userId,
+            amount: finalPrice,
+            status: 'pending'
+        });
 
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ['card'],
             line_items: [{
                 price_data: {
                     currency: 'usd',
-                    product_data: { 
-                        name: course.courseTitle,
-                        images: [course.courseThumbnail] 
-                    },
+                    product_data: { name: course.courseTitle, images: [course.courseThumbnail] },
                     unit_amount: amountInCents,
                 },
                 quantity: 1,
@@ -66,7 +67,11 @@ export const PurchaseCourse = async (req, res) => {
             mode: 'payment',
             success_url: `${origin}/my-enrollments`,
             cancel_url: `${origin}/course/${courseId}`,
-            metadata: { courseId, userId } 
+            metadata: { 
+                purchaseId: newPurchase._id.toString(), 
+                courseId, 
+                userId 
+            } 
         });
 
         res.json({ success: true, session_url: session.url });
