@@ -1,24 +1,33 @@
-import express from "express"
-import "dotenv/config"
-import cors from 'cors'
+import express from "express";
+import "dotenv/config";
+import cors from 'cors';
 import ConnectDb from "./configs/mongodb.js";
 import { clerkWebhooks } from "./controllers/webhooks.js";
 
-//initialize projects 
-const app =express();
-// 1. Connect to DB & Cloudinary
+const app = express();
+
+// 1. Database Connection
 await ConnectDb();
 
-app.use(cors())
+// 2. Enable CORS (Crucial for React -> Backend communication)
+app.use(cors());
 
-//Routes
-app.get("/",async(req,res)=>{
-    res.send("api working")
+// 3. Clerk Webhook Route (MUST be raw for Svix verification)
+app.post(
+    '/clerk', 
+    express.raw({ type: 'application/json' }), 
+    clerkWebhooks
+);
+
+// 4. Regular JSON Middleware (Placed AFTER the webhook route)
+app.use(express.json());
+
+// 5. Test Route
+app.get("/", (req, res) => {
+    res.send("API is working");
 });
-app.post('/clerk',express.json(),clerkWebhooks)
 
-//Port
-const PORT=process.env.PORT || 5000;
-app.listen(PORT,()=>{
-    console.log(`server is listening on ${PORT}`)
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+    console.log(`🚀 Server listening on ${PORT}`);
 });
