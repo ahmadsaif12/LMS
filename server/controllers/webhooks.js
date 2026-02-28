@@ -1,91 +1,63 @@
 import { Webhook } from "svix";
-import User from "../models/User.js";
+import User from '../models/User.js';
 
+// Controller to handle Clerk Webhooks
 export const clerkWebhooks = async (req, res) => {
     try {
-        const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
-        
-        if (!WEBHOOK_SECRET) {
-            console.error("CLERK_WEBHOOK_SECRET missing in .env");
-            return res.status(400).json({ success: false, message: "Missing Secret" });
-        }
+        // 1. Create a Svix instance with your Clerk Webhook Secret
+        const whse = new Webhook(process.env.CLERK_WEBHOOK_SECRET);
 
-        // --- THE DEBUGGER ---
-        console.log("---  Incoming Request Details ---");
-        console.log("Method:", req.method);
-        console.log("User-Agent (Who is calling?):", req.headers["user-agent"]);
-        console.log("svix-id Header:", req.headers["svix-id"] || "MISSING ");
-        // --------------------
+        // 2. Verify the headers to ensure the request is actually from Clerk
+        await whse.verify(JSON.stringify(req.body), {
+            "svix-id": req.headers["svix-id"],
+            "svix-timestamp": req.headers["svix-timestamp"],
+            "svix-signature": req.headers["svix-signature"],
+        });
 
-        const svix_id = req.headers["svix-id"];
-        const svix_timestamp = req.headers["svix-timestamp"];
-        const svix_signature = req.headers["svix-signature"];
+        // 3. Extract data and type from the request body
+        const { data, type } = req.body;
 
-        // If headers are missing, the request is NOT coming from Clerk's Webhook system
-        if (!svix_id || !svix_timestamp || !svix_signature) {
-            console.error("REJECTED: This request did not come from Clerk (Missing Svix Headers)");
-            return res.status(400).json({ 
-                success: false, 
-                message: "Missing Svix Headers. Are you accidentally calling this from React/Postman?" 
-            });
-        }
-
-        const payload = req.body.toString();
-        const wh = new Webhook(WEBHOOK_SECRET);
-
-        let evt;
-
-        try {
-            evt = wh.verify(payload, {
-                "svix-id": svix_id,
-                "svix-timestamp": svix_timestamp,
-                "svix-signature": svix_signature,
-            });
-            console.log(" Webhook Verified Successfully (It came from Clerk!)");
-        } catch (err) {
-            console.error(' Verification failed: Signature mismatch. Check your CLERK_WEBHOOK_SECRET.');
-            return res.status(400).json({ success: false, message: 'Invalid Signature' });
-        }
-
-        const { data, type } = evt;
-
+        // 4. Handle different Event Types
         switch (type) {
             case 'user.created': {
                 const userData = {
                     _id: data.id,
-                    name: `${data.first_name || ''} ${data.last_name || ''}`.trim() || "New User",
-                    email: data.email_addresses?.[0]?.email_address ?? `user-${data.id}@clerk.com`,
-                    imageUrl: data.image_url || "",
-                    enrolledCourses: []
+                    email: data.email_addresses[0].email_address,
+                    name: data.first_name + " " + data.last_name,
+                    imageUrl: data.image_url,
+                    enrolledCourses: [],
                 };
-                
-                await User.findByIdAndUpdate(data.id, userData, { upsert: true, new: true });
-                console.log(" SUCCESS: User saved to MongoDB Atlas:", data.id);
-                return res.status(201).json({ success: true });
+                await User.create(userData);
+                console.log(` SUCCESS: User created: ${data.id}`);
+                res.json({ success: true, message: 'User created' });
+                break;
             }
 
             case 'user.updated': {
-                const updatedData = {
-                    name: `${data.first_name || ''} ${data.last_name || ''}`.trim(),
-                    email: data.email_addresses?.[0]?.email_address,
+                const userData = {
+                    email: data.email_addresses[0].email_address,
+                    name: data.first_name + " " + data.last_name,
                     imageUrl: data.image_url,
                 };
-                await User.findByIdAndUpdate(data.id, updatedData);
-                console.log(" User updated in MongoDB");
-                return res.status(200).json({ success: true });
+                await User.findByIdAndUpdate(data.id, userData);
+                console.log(` SUCCESS: User updated: ${data.id}`);
+                res.json({ success: true, message: 'User updated' });
+                break;
             }
 
             case 'user.deleted': {
                 await User.findByIdAndDelete(data.id);
-                console.log(" User deleted from MongoDB");
-                return res.status(200).json({ success: true });
+                console.log(`🗑️ SUCCESS: User deleted: ${data.id}`);
+                res.json({ success: true, message: 'User deleted' });
+                break;
             }
 
             default:
-                return res.status(200).json({ success: true });
+                break;
         }
+
     } catch (error) {
-        console.error(' Webhook Controller Crash:', error.message);
-        return res.status(500).json({ success: false, message: "Internal Server Error" });
+        console.log("Webhook Error:", error.message);
+        res.status(400).json({ success: false, message: error.message });
     }
-};
+}

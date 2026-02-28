@@ -15,7 +15,7 @@ app.use(cors());
 // 3. Clerk Webhook Route (MUST be raw for Svix verification)
 app.post(
     '/clerk', 
-    express.raw({ type: 'application/json' }), 
+    express.json(),
     clerkWebhooks
 );
 
