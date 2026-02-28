@@ -12,12 +12,15 @@ import Dashboard from "./pages/educator/Dashboard.jsx"
 import AddCourse from "./pages/educator/Addcourse.jsx" 
 import MyCourses from "./pages/educator/MyCourses.jsx"
 import StudentsEnrolled from "./pages/educator/StudentsEnrolled.jsx"
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const App = () => {
   const isEducatorRoute = useMatch('/educator/*');
 
   return (
     <div className='text-default min-h-screen bg-white'>
+      <ToastContainer />
       {!isEducatorRoute && <Navbar />} 
       <Routes>
         <Route path="/" element={<Home />} />
