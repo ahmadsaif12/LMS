@@ -1,35 +1,44 @@
-import Course from '../models/Course.js';
+import Course from "../models/Course.js";
 
-export const getAllCoursesData = async (req, res) => {
-    try {
-        const courses = await Course.find({ isPublished: true })
-            .select(['-courseContent', '-enrolledStudents'])
-            .populate({ path: 'educator', select: 'name imageUrl email' });
+// Get all published courses
+export const getAllCourse = async (req, res) => {
+  try {
+    const courses = await Course.find({ isPublished: true })
+      .select(["-courseContent", "-enrolledStudents"])
+      .populate({ path: "educator" });
 
-        res.json({ success: true, courses });
-    } catch (e) {
-        res.status(500).json({ success: false, message: e.message });
-    }
+    res.json({ success: true, courses });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
 };
 
-// 2. Fetch specific course details
-export const getCourseById = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const courseData = await Course.findById(id)
-            .select('-enrolledStudents')
-            .populate({ path: 'educator', select: 'name imageUrl email' });
+// Get course by ID
+export const getCourseId = async (req, res) => {
+  const { id } = req.params;
 
-        if (!courseData) return res.status(404).json({ success: false, message: 'Course not found' });
+  try {
+    const courseData = await Course.findById(id).populate({ path: "educator" });
 
-        let lectures = 0, duration = 0;
-        courseData.courseContent.forEach(ch => {
-            lectures += ch.chapterContent.length;
-            ch.chapterContent.forEach(lec => duration += lec.lectureDuration);
-        });
-
-        res.json({ success: true, courseData, totalLectures: lectures, totalDuration: duration });
-    } catch (e) {
-        res.status(500).json({ success: false, message: e.message });
+    if (!courseData) {
+      return res.json({ success: false, message: "Course not found" });
     }
+
+    // Remove lecture URLs if isPreviewFree is false
+    if (Array.isArray(courseData.courseContent)) {
+      courseData.courseContent.forEach((chapter) => {
+        if (Array.isArray(chapter.chapterContent)) {
+          chapter.chapterContent.forEach((lecture) => {
+            if (!lecture.isPreviewFree) {
+              lecture.lectureurl = "";
+            }
+          });
+        }
+      });
+    }
+
+    res.json({ success: true, courseData });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
 };
