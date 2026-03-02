@@ -19,17 +19,18 @@ await connectCloudinary();
 // 1. Global Middleware
 app.use(cors());
 
-// 2. Webhook Routes (MUST come before express.json() for raw body access)
 app.post('/stripe', express.raw({ type: 'application/json' }), stripeWebhooks);
-app.post('/clerk', express.json(), clerkWebhooks); // Clerk actually prefers JSON
 
 // 3. Body Parsing Middleware (For all other routes)
 app.use(express.json());
 
-// 4. Auth Middleware
+// 4. Clerk Webhook (Clerk uses JSON, so it can go after express.json())
+app.post('/clerk', clerkWebhooks);
+
+// 5. Auth Middleware
 app.use(clerkMiddleware());
 
-// 5. API Routes
+// 6. API Routes
 app.get("/", (req, res) => {
     res.send("API is working");
 });

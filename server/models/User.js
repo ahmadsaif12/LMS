@@ -8,10 +8,10 @@ const userSchema = new mongoose.Schema({
   enrolledCourses: [
     { 
       type: mongoose.Schema.Types.ObjectId, 
-      ref: 'course' 
+      ref: 'Course' 
     }
   ]
-}, { timestamps: true }); 
+}, { timestamps: true, _id: false }); 
 
 const User = mongoose.models.User || mongoose.model("User", userSchema);
 

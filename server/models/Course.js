@@ -36,7 +36,6 @@ const courseSchema = new mongoose.Schema({
     educator: { type: String, ref: 'User', required: true }, 
     createdAt: { type: Number, default: Date.now },
 }, { minimize: false });
-
-const Course = mongoose.models.course || mongoose.model('course', courseSchema);
+const Course = mongoose.models.Course || mongoose.model('Course', courseSchema);
 
 export default Course;

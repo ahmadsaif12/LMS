@@ -94,6 +94,7 @@ export const AppContextProvider = (props) => {
                 toast.error(data.message);
             }
         } catch (error) {
+            console.error("Fetch Enrollment Error:", error);
             toast.error(error.message);
         }
     }
@@ -104,22 +105,17 @@ export const AppContextProvider = (props) => {
 
     useEffect(() => {
         if (isSignedIn && user) {
-            
-            // =========================================================
-            // TEMPORARY: TOKEN LOGGING FOR POSTMAN TESTING
-            // REMOVE THIS BLOCK BEFORE PRODUCTION
-            // =========================================================
+            // --- CONSOLE LOG TOKEN ---
             getToken().then((token) => {
-                console.log("--- DEBUG: CLERK TOKEN FOR POSTMAN ---");
+                console.log("🔑 CLERK AUTH TOKEN:");
                 console.log(token);
-                console.log("---------------------------------------");
+                console.log("Copy the string above for Postman 'Bearer' header.");
             });
-            // =========================================================
 
             fetchUserData();
             fetchUserEnrolledCourses();
         }
-    }, [isSignedIn, user]);
+    }, [isSignedIn, user]); 
 
     const value = {
         currency,

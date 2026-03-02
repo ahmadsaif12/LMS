@@ -8,7 +8,7 @@ const purchaseSchema = new mongoose.Schema({
     },
     courseId: { 
         type: mongoose.Schema.Types.ObjectId, 
-        ref: 'course', 
+        ref: 'Course',
         required: true 
     },
     status: { 
@@ -22,6 +22,7 @@ const purchaseSchema = new mongoose.Schema({
     }
 },{timestamps:true});
 
-const Purchase = mongoose.models.purchase || mongoose.model('purchase', purchaseSchema);
+
+const Purchase = mongoose.models.Purchase || mongoose.model('Purchase', purchaseSchema);
 
 export default Purchase;
