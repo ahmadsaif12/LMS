@@ -1,20 +1,7 @@
 
-<div align="center">
-  
-![favicon](https://github.com/user-attachments/assets/ba86af86-a98e-4842-9cc4-5871c5ef234b)
-
-</div>
-
 # Edemy LMS 🎓 - A Modern Learning Management System
 
-
 Edemy LMS is a full-stack learning management system (LMS) that provides educators and students with a seamless e-learning experience. Built using modern web technologies, it includes user authentication, course management, video streaming, and progress tracking.
-<img width="1536" height="1024" alt="edemylms" src="https://github.com/user-attachments/assets/dab1ef86-1699-488f-addb-c7315b1116ed" />
-
-![Edemy LMS](https://github.com/user-attachments/assets/8926c6a8-0e32-442a-82f5-dd19b11b6d7c)
-
-
-
 ## 🚀 Tech Stack
 
 ### Frontend:
@@ -132,11 +119,6 @@ Edemy LMS is a full-stack learning management system (LMS) that provides educato
 | **Course Page** | ![Course](https://github.com/user-attachments/assets/e42c2660-8271-42ae-b7e3-c5278b6a9cf1) |
 | **My Enrollments** | ![Enrollments](https://github.com/user-attachments/assets/a88cf7c1-cab1-4106-a64d-d7cfd5d9d4b7) |
 |
-
-
-
-
-
 
 ## ⚡ Installation & Setup
 
