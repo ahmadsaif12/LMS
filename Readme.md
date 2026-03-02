@@ -203,5 +203,6 @@ Made with ❤️ by **Saif Ahmad**
 ### ⭐ Show Some Love!
 
 If you like this project, don't forget to leave a **⭐ Star** on GitHub! 🚀
-
-<img width="1536" height="1024" alt="gps" src="https://github.com/user-attachments/assets/fde20654-9d28-44b1-93e7-167e112752a0" />
+<p align="center">
+  <img width="400" alt="Saif Ahmad Signature" src="https://github.com/user-attachments/assets/saif.png" />
+</p>
