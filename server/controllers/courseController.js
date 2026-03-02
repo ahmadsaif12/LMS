@@ -45,21 +45,28 @@ export const PurchaseCourse = async (req, res) => {
         const course = await Course.findById(courseId);
         if (!course) return res.status(404).json({ success: false, message: 'Course not found' });
 
+        // Calculate price
         const finalPrice = course.coursePrice - (course.coursePrice * course.discount) / 100;
         const amountInCents = Math.round(finalPrice * 100);
+
+        // 1. Create Purchase with a fixed decimal for the Number field
         const newPurchase = await Purchase.create({
             courseId,
             userId,
-            amount: finalPrice,
+            amount: Number(finalPrice.toFixed(2)), 
             status: 'pending'
         });
 
+        // 2. Generate Stripe Session
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ['card'],
             line_items: [{
                 price_data: {
                     currency: 'usd',
-                    product_data: { name: course.courseTitle, images: [course.courseThumbnail] },
+                    product_data: { 
+                        name: course.courseTitle, 
+                        images: [course.courseThumbnail] 
+                    },
                     unit_amount: amountInCents,
                 },
                 quantity: 1,
@@ -69,8 +76,8 @@ export const PurchaseCourse = async (req, res) => {
             cancel_url: `${origin}/course/${courseId}`,
             metadata: { 
                 purchaseId: newPurchase._id.toString(), 
-                courseId, 
-                userId 
+                courseId: courseId.toString(), 
+                userId: userId.toString() 
             } 
         });
 
