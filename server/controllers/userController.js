@@ -1,5 +1,8 @@
 import User from '../models/User.js';
 import CourseProgress from '../models/CourseProgress.js';
+import Course from '../models/Course.js';
+import stripe from '../configs/stripe.js';
+import Purchase from '../models/Purchase.js';
 
 export const getUserData = async (req, res) => {
     try {
@@ -21,6 +24,66 @@ export const userEnrolledCourses = async (req, res) => {
 
         res.json({ success: true, enrolledCourses: userData.enrolledCourses });
     } catch (e) {
+        res.status(500).json({ success: false, message: e.message });
+    }
+};
+
+export const PurchaseCourse = async (req, res) => {
+    try {
+        const { courseId } = req.body;
+        
+        // Clerk middleware attaches auth to req.auth
+        const userId = req.auth.userId;
+        const origin = req.get('origin');
+
+        // 1. Validate Course Existence
+        const course = await Course.findById(courseId);
+        if (!course) {
+            return res.status(404).json({ success: false, message: 'Course not found' });
+        }
+
+        // 2. Calculate Final Price (Applying Discount)
+        const finalPrice = course.coursePrice - (course.coursePrice * course.discount) / 100;
+        const amountInCents = Math.round(finalPrice * 100);
+
+        // 3. Create Initial Purchase Record (Pending)
+        const newPurchase = await Purchase.create({
+            courseId,
+            userId,
+            amount: Number(finalPrice.toFixed(2)), 
+            status: 'pending'
+        });
+
+        // 4. Generate Stripe Checkout Session
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items: [{
+                price_data: {
+                    currency: 'usd',
+                    product_data: { 
+                        name: course.courseTitle, 
+                        images: [course.courseThumbnail] 
+                    },
+                    unit_amount: amountInCents,
+                },
+                quantity: 1,
+            }],
+            mode: 'payment',
+            success_url: `${origin}/my-enrollments`,
+            cancel_url: `${origin}/course/${courseId}`,
+            // Metadata is crucial for the Webhook to finalize enrollment later
+            metadata: { 
+                purchaseId: newPurchase._id.toString(), 
+                courseId: courseId.toString(), 
+                userId: userId.toString() 
+            } 
+        });
+
+        // Send the Stripe URL to the frontend for redirection
+        res.json({ success: true, session_url: session.url });
+
+    } catch (e) {
+        console.error("Purchase Error:", e.message);
         res.status(500).json({ success: false, message: e.message });
     }
 };
@@ -78,7 +141,6 @@ export const getUserCourseProgress = async (req, res) => {
 };
 
 //add user ratings
-import Course from '../models/Course.js';
 
 export const addUserRating = async (req, res) => {
     try {

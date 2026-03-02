@@ -1,131 +1,128 @@
 import { createContext, useEffect, useState } from "react";
-import { dummyCourses } from "../assets/assets";
 import { useNavigate } from "react-router-dom";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import axios from 'axios';
-import { toast } from 'react-toastify'; 
+import { toast } from 'react-toastify';
 
 export const AppContext = createContext();
 
 export const AppContextProvider = (props) => {
-    
-    // --- Environment Variables ---
+
     const currency = import.meta.env.VITE_CURRENCY || '$';
     const backendUrl = import.meta.env.VITE_BACKEND_URL;
-    
+
     const navigate = useNavigate();
-    
-    // --- Clerk Hooks ---
     const { getToken, isSignedIn } = useAuth();
     const { user } = useUser();
 
-    // --- Application States ---
+    // --- State Management ---
     const [allCourses, setAllCourses] = useState([]);
     const [isEducator, setIsEducator] = useState(false);
-    const [enrolledCourse, setEnrolledCourse] = useState([]);
+    const [enrolledCourses, setEnrolledCourses] = useState([]);
+    const [userData, setUserData] = useState(null);
 
-    // --- Helper Calculations (UI Display Logic) ---
+    // --- Helper Logic ---
     const calculateRating = (course) => {
         if (!course.courseRatings || course.courseRatings.length === 0) return 0;
         const totalRating = course.courseRatings.reduce((acc, curr) => acc + curr.rating, 0);
-        return totalRating / course.courseRatings.length;
+        return (totalRating / course.courseRatings.length).toFixed(1); 
     }
 
     const calculateChapterTime = (chapter) => {
-        let time = 0;
-        chapter.chapterContent.forEach((lecture) => {
-            time += lecture.lectureDuration || 0;
-        });
-        return time;
+        return chapter.chapterContent.reduce((time, lecture) => time + (lecture.lectureDuration || 0), 0);
     }
 
     const calculateCourseDuration = (course) => {
-        let time = 0;
-        course.courseContent.forEach((chapter) => {
-            time += calculateChapterTime(chapter);
-        });
-        return time; 
+        return course.courseContent.reduce((time, chapter) => time + calculateChapterTime(chapter), 0);
     }
 
     const calculateNoOfLectures = (course) => {
-        let totalLectures = 0;
-        course.courseContent.forEach((chapter) => {
-            if (Array.isArray(chapter.chapterContent)) {
-                totalLectures += chapter.chapterContent.length;
-            }
-        });
-        return totalLectures;
+        return course.courseContent.reduce((total, chapter) => {
+            return total + (Array.isArray(chapter.chapterContent) ? chapter.chapterContent.length : 0);
+        }, 0);
     }
 
-    // --- API & Data Fetching ---
+    // --- API Functions ---
 
-    // 1. Fetch all courses (Currently from dummy, ready for axios)
     const fetchAllCourses = async () => {
-        setAllCourses(dummyCourses);
-    }
-
-    // 2. Fetch courses user is enrolled in
-    const fetchUserEnrolledCourses = async () => {
-        setEnrolledCourse(dummyCourses);
-    }
-
-    // 3. Become an Educator 
-    const becomeEducator = async () => {
         try {
-            if (!isSignedIn) {
-                return toast.error("Please login to continue");
+            const { data } = await axios.get(`${backendUrl}/api/course/all`);
+            if (data.success) {
+                setAllCourses(data.courses);
+            } else {
+                toast.error(data.message);
             }
+        } catch (error) {
+            toast.error(error.message);
+        }
+    };
 
-            // GET THE TOKEN FROM CLERK
-            const token = await getToken();
-            console.log(" Clerk Session Token Found:", token); 
+    const fetchUserData = async () => {
+        if (!isSignedIn || !user) return;
 
-            // API Call to your Node backend to update role
-            const { data } = await axios.post(
-                `${backendUrl}/api/educator/update-role`, 
-                {}, 
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
+        if (user.publicMetadata?.role === 'educator') {
+            setIsEducator(true);
+        }
+
+        try {
+            const token = await getToken(); 
+            
+            const { data } = await axios.get(`${backendUrl}/api/user/data`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
 
             if (data.success) {
-                setIsEducator(true);
-                toast.success(data.message);
+                setUserData(data.user);
             } else {
-                toast.error(data.message || "Failed to update role");
+                toast.error(data.message);
             }
-
         } catch (error) {
-            toast.error(error.response?.data?.message || error.message);
+            toast.error(error.message);
+        }
+    };
+
+    const fetchUserEnrolledCourses = async () => {
+        try {
+            const token = await getToken();
+            const { data } = await axios.get(`${backendUrl}/api/user/enrolled-courses`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (data.success) {
+                setEnrolledCourses(data.enrolledCourses);
+            } else {
+                toast.error(data.message);
+            }
+        } catch (error) {
+            toast.error(error.message);
         }
     }
 
-    // --- Side Effects ---
-
-    // Fetch initial static data
     useEffect(() => {
         fetchAllCourses();
-        fetchUserEnrolledCourses();
     }, []);
 
-    // Effect to check and log Clerk Auth state
     useEffect(() => {
-        const checkAuthStatus = async () => {
-            if (isSignedIn && user) {
-                // Log token for manual verification in console
-                const token = await getToken();
-                console.log("Current User Token:", token);
+        if (isSignedIn && user) {
+            
+            // =========================================================
+            // TEMPORARY: TOKEN LOGGING FOR POSTMAN TESTING
+            // REMOVE THIS BLOCK BEFORE PRODUCTION
+            // =========================================================
+            getToken().then((token) => {
+                console.log("--- DEBUG: CLERK TOKEN FOR POSTMAN ---");
+                console.log(token);
+                console.log("---------------------------------------");
+            });
+            // =========================================================
 
-                // Sync Educator state from Clerk metadata
-                if (user.publicMetadata?.role === 'educator') {
-                    setIsEducator(true);
-                }
-            }
-        };
-        checkAuthStatus();
-    }, [isSignedIn, user, getToken]);
+            fetchUserData();
+            fetchUserEnrolledCourses();
+        }
+    }, [isSignedIn, user]);
 
     const value = {
-        currency, 
+        currency,
         backendUrl,
         allCourses,
         setAllCourses,
@@ -136,10 +133,14 @@ export const AppContextProvider = (props) => {
         calculateChapterTime,
         calculateCourseDuration,
         calculateNoOfLectures,
-        enrolledCourse,       
-        setEnrolledCourse,
-        becomeEducator,
-        getToken 
+        enrolledCourses,
+        setEnrolledCourses,
+        userData,
+        setUserData,
+        getToken,
+        fetchAllCourses,
+        fetchUserData,
+        fetchUserEnrolledCourses
     }
 
     return (

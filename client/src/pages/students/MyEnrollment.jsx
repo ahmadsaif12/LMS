@@ -1,12 +1,12 @@
 import React, { useContext, useState } from 'react'
-import { AppContext } from '../../context/Appcontext'
+import { AppContext } from '../../context/Appcontext' // Ensure casing matches your file (AppContext or Appcontext)
 import { Line } from 'rc-progress'
 import Footer from '../../components/students/Footer'
 
 const MyEnrollment = () => {
-  const { enrolledCourse, calculateCourseDuration, navigate } = useContext(AppContext)
+  // 1. Changed to enrolledCourses to match the Context state
+  const { enrolledCourses, calculateCourseDuration, navigate } = useContext(AppContext)
 
-  // Simulated progress data 
   const [progressArray, setProgressArray] = useState([
     { completedLectures: 4, totalLectures: 10 },
     { completedLectures: 12, totalLectures: 12 },
@@ -29,7 +29,8 @@ const MyEnrollment = () => {
               </tr>
             </thead>
             <tbody className='text-gray-700'>
-              {enrolledCourse.map((course, index) => {
+              {/* 2. Added optional chaining ?. to prevent crash if data isn't loaded yet */}
+              {enrolledCourses?.map((course, index) => {
                 const completed = progressArray[index]?.completedLectures || 0;
                 const total = progressArray[index]?.totalLectures || 1;
                 const percentage = Math.round((completed / total) * 100);
@@ -80,6 +81,12 @@ const MyEnrollment = () => {
               })}
             </tbody>
           </table>
+          {/* 3. Empty State UI */}
+          {enrolledCourses?.length === 0 && (
+            <div className='p-10 text-center text-gray-500'>
+              You aren't enrolled in any courses yet.
+            </div>
+          )}
         </div>
       </div>
      
