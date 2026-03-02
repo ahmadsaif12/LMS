@@ -12,31 +12,28 @@ import userRouter from './routes/userRoutes.js';
 // initialize express 
 const app = express();
 
-
 // connect to db
 await connectDB();
 await connectCloudinay();
 
-
-// middleware
+// --- 1. Basic Middleware ---
 app.use(cors());
-app.use(clerkMiddleware())
+app.use(clerkMiddleware());
 
+app.post('/stripe', express.raw({type: 'application/json'}), stripeWebhooks);
 
-// Routes
+// --- 3. Routes & Global JSON Parsing ---
 app.get('/', (req,res)=>{res.send("Edemy API is working fine!")})
-app.post('/clerk', express.json(), clerkWebhooks)
+
+// Clerk Webhook
+app.post('/clerk', express.json(), clerkWebhooks);
 app.use('/api/educator', express.json(), educatorRouter);
 app.use('/api/course', express.json(), courseRouter);
 app.use('/api/user', express.json(), userRouter);
-app.post('/stripe', express.raw({type: 'application/json'}), stripeWebhooks);
-
-
 
 // port
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, ()=> {
     console.log(`Server is running on ${PORT}`);
-    
 })
