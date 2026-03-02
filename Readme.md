@@ -204,5 +204,5 @@ Made with ❤️ by **Saif Ahmad**
 
 If you like this project, don't forget to leave a **⭐ Star** on GitHub! 🚀
 <p align="center">
-  <img width="400" alt="Saif Ahmad Signature" src="https://github.com/user-attachments/assets/saif.png" />
+  <img width="400" alt="Saif Ahmad Signature" src="https://raw.githubusercontent.com/ahmadsaif12/LMS/main/client/src/assets/saif.png" />
 </p>
