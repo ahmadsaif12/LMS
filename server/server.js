@@ -2,35 +2,39 @@ import express from "express";
 import "dotenv/config";
 import cors from 'cors';
 import ConnectDb from "./configs/mongodb.js";
-import { clerkWebhooks } from "./controllers/webhooks.js";
+import { clerkWebhooks, stripeWebhooks } from "./controllers/webhooks.js";
 import educatorRouter from "./routes/educatorRoutes.js";
 import { clerkMiddleware } from '@clerk/express'; 
 import { connectCloudinary } from "./configs/cloudinary.js";
 import courseRouter from "./routes/courseRoutes.js";
 import userRouter from "./routes/userRoutes.js";
-import { stripeWebhooks } from './controllers/webhooks.js';
 
 const app = express();
-
-// Database & Cloudinary Connections
 await ConnectDb();
 await connectCloudinary();
+const FRONTEND_URL = 'https://lms-frontend-nu-sage.vercel.app';
 
-// 1. Global Middleware
-app.use(cors());
+app.use(cors({
+  origin: FRONTEND_URL,
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true, // required if using cookies/auth
+}));
 
-app.post('/stripe', express.raw({ type: 'application/json' }), stripeWebhooks);
+app.options('*', cors({
+  origin: FRONTEND_URL,
+  credentials: true
+}));
 
-// 3. Body Parsing Middleware (For all other routes)
 app.use(express.json());
 
-// 4. Clerk Webhook (Clerk uses JSON, so it can go after express.json())
-app.post('/clerk', clerkWebhooks);
+// Stripe webhook needs raw body
+app.post('/stripe', express.raw({ type: 'application/json' }), stripeWebhooks);
 
-// 5. Auth Middleware
+// Clerk webhook
+app.post('/clerk', clerkWebhooks);
 app.use(clerkMiddleware());
 
-// 6. API Routes
 app.get("/", (req, res) => {
     res.send("API is working");
 });
@@ -41,5 +45,5 @@ app.use("/api/user", userRouter);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-    console.log(`Server listening on ${PORT}`);
+    console.log(`Server listening on port ${PORT}`);
 });
