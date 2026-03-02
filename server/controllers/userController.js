@@ -35,8 +35,6 @@ export const userEnrolledCourses = async (req, res) => {
     res.json({ success: false, message: error.message });
   }
 };
-
-// Purchase course
 export const purchaseCourse = async (req, res) => {
   try {
     const { courseId } = req.body;
@@ -47,28 +45,37 @@ export const purchaseCourse = async (req, res) => {
     const courseData = await Course.findById(courseId);
 
     if (!userData || !courseData) {
-      return res.json({ success: false, message: "Data Not Found" }); // <-- return here too
+      return res.json({ success: false, message: "Data Not Found" });
     }
+
+    // 1. Calculate the numeric price exactly as shown in your UI
+    // For your Java course: 300 - (10 * 300 / 100) = 270
+    const finalPrice = courseData.coursePrice - (courseData.discount * courseData.coursePrice) / 100;
 
     const purchaseData = {
       courseId: courseData._id,
       userId,
-      amount: (courseData.coursePrice - (courseData.discount * courseData.coursePrice) / 100).toFixed(2),
+      amount: finalPrice.toFixed(2), // Saves "270.00" in MongoDB
     };
 
     const newPurchase = await Purchase.create(purchaseData);
 
     const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY);
-    const currency = process.env.CURRENCY.toLowerCase();
+    
+    // 2. Convert to Cents for Stripe (Integer only)
+    // 270.00 * 100 = 27000 cents
+    const unitAmountInCents = Math.round(finalPrice * 100);
 
     const line_items = [
       {
         price_data: {
-          currency,
+          currency: process.env.CURRENCY.toLowerCase(), // 'usd'
           product_data: {
             name: courseData.courseTitle,
+            // You can add the course image here to match your UI
+            images: [courseData.courseThumbnail], 
           },
-          unit_amount: Math.floor(newPurchase.amount) * 100,
+          unit_amount: unitAmountInCents, 
         },
         quantity: 1,
       },
@@ -80,16 +87,16 @@ export const purchaseCourse = async (req, res) => {
       line_items,
       mode: "payment",
       metadata: {
-        purchaseId: newPurchase._id.toString(),
+        purchaseId: newPurchase._id.toString(), // Passes 69a5... to the webhook
       },
     });
 
     res.json({ success: true, session_url: session.url });
   } catch (error) {
+    console.error("Purchase Error:", error.message);
     res.json({ success: false, message: error.message });
   }
 };
-
 // Update user course progress
 export const updateUserCourseProgress = async (req, res) => {
   try {
